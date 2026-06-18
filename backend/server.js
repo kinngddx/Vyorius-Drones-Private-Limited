@@ -4,7 +4,16 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+
+const io = new Server(server, {
+  cors: {
+    origin: [
+      "http://localhost:5173",
+      "https://your-vercel-app.vercel.app"  
+    ],
+    methods: ["GET", "POST"]
+  }
+});
 
 let tasks = [];
 
@@ -13,9 +22,7 @@ io.on("connection", (socket) => {
   socket.emit("sync:tasks", tasks);
 
   socket.on("task:create", (task) => {
-    if (!task || !task.id) {
-      return;
-    }
+    if (!task || !task.id) return;
     tasks.push(task);
     io.emit("sync:tasks", tasks);
   });
@@ -30,14 +37,15 @@ io.on("connection", (socket) => {
     io.emit("sync:tasks", tasks);
   });
 
- socket.on("task:delete", ({ id }) => {       // ← destructure { id }
-  tasks = tasks.filter((task) => task.id !== id);
-  io.emit("sync:tasks", tasks);
-});
+  socket.on("task:delete", ({ id }) => {
+    tasks = tasks.filter((task) => task.id !== id);
+    io.emit("sync:tasks", tasks);
+  });
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
 });
 
-server.listen(5000, () => console.log("Server running on port 5000"));
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
